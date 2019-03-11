@@ -1,0 +1,65 @@
+- hosts: localhost
+  vars:
+    COMMON_ROOT_PASSWORD: '$6$jvyTMg3ocGGsQRcD$ZhltLw.d5zjcSV2W6vt1/0ETes13LqOHjUDnqQWkAyabRsxQs/zoVrfafqKUIOp4J3GBN1kUJzeSspI6zPx8v/'
+    COMMON_DEPLOY_PASSWORD: '$6$H0lYsqbfWLm5fSZx$mHtmBbr4yrtdnWooPJzuckR.hbGnKkaYHavf2Idiyq..bd0orTfpPeTpsHW2L41op5RiRjNkKxEh5MqwwzygI0'
+
+    common_required_packages:
+      - ufw
+      - fail2ban
+      - vim
+      - apache2
+      - dehydrated
+
+    common_optional_packages:
+      - vim
+
+    common_ssh_port: 22
+
+  tasks:
+    
+    - name: Add docker repository to sources.list
+      lineinfile: dest=/etc/apt/sources.list
+                  line="deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+                  state=present       
+
+    - name: Update APT package cache
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Upgrade APT to the latest packages
+      apt: upgrade=safe
+
+    - name: Install required packages
+      apt: state=present pkg={{ item }}
+      with_items: "{{ common_required_packages }}"
+
+    - name: Disallow ssh password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication no"
+                  state=present
+      notify: Restart ssh
+
+    - name: Disallow root SSH access
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PermitRootLogin"
+                  line="PermitRootLogin no"
+                  state=present
+      notify: Restart ssh
+
+    - name: Deploy config for dehydrated
+      template: src=./files/dehydrated.apache.conf dest=/etc/apache2/conf-available/dehydrated.conf
+    - name: Enable config for dehydrated
+      command: a2enconf dehydrated
+      notify: Restart apache2
+
+    - name: Creating cronjob for dehydrated
+      template: src=./files/dehydrated.cron.daily dest=/etc/cron.daily/dehydrated
+      
+
+  handlers:
+    - name: Restart ssh
+      service: name=ssh state=restarted
+    - name: Restart apache2
+      service: name=apache2 state=restarted
+        
+
