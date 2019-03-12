@@ -13,7 +13,7 @@
       - software-properties-common
       - fail2ban
       - vim
-      - apache2
+      - nginx
       - dehydrated
     
     docker_packages:
@@ -91,11 +91,33 @@
                   state=present
       notify: Restart ssh
 
-    - name: Deploy config for dehydrated
-      template: src=./files/dehydrated.apache.conf dest=/etc/apache2/conf-available/dehydrated.conf
-    - name: Enable config for dehydrated
-      command: a2enconf dehydrated
-      notify: Restart apache2
+    - name: Create WellKnown directory for dehydrated challenges 
+      file:
+         path: /var/www/dehydrated
+         state: directory
+         owner: www-data
+         group: www-data
+         mode: 0755
+
+    - name: Set WELLKNOWN for dehydrated
+      lineinfile: dest=/etc/dehydrated/config
+                  regexp="^WELLKNOWN"
+                  line="WELLKNOWN=/var/www/dehydrated"
+                  state=present
+      notify: Restart ssh
+
+    - name: Insert .wellknown alias into nginx configuration
+      blockinfile:
+        path: /etc/nginx/sites-available/default
+        marker: "## {mark} ANSIBLE MANAGED BLOCK"
+        insertafter: "server_name _;"
+        content: |
+          location ^~ /.well-known/acme-challenge {
+              alias /var/www/dehydrated;
+          }
+      notify: Restart nginx
+
+
 
     - name: Creating cronjob for dehydrated
       template: src=./files/dehydrated.cron.daily dest=/etc/cron.daily/dehydrated
@@ -104,7 +126,7 @@
   handlers:
     - name: Restart ssh
       service: name=ssh state=restarted
-    - name: Restart apache2
-      service: name=apache2 state=restarted
+    - name: Restart nginx
+      service: name=nginx state=restarted
         
 
