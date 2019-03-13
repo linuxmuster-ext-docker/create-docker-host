@@ -24,7 +24,9 @@
     common_optional_packages:
       - vim
 
-    common_ssh_port: 22
+    ssh_port: 22
+    http_port: 80
+    https_port: 443
 
   tasks:
     - name: get lsb_release
@@ -117,10 +119,28 @@
           }
       notify: Restart nginx
 
-
+    - name: Registering host with letsencrypt
+      command: /usr/bin/dehydrated --register --accept-terms
 
     - name: Creating cronjob for dehydrated
       template: src=./files/dehydrated.cron.daily dest=/etc/cron.daily/dehydrated
+
+    - name: Setup ufw
+      ufw: state=enabled policy=deny
+
+    - name: Allow SSH on port {{ ssh_port }}
+      ufw: rule=allow port={{ ssh_port }} proto=tcp
+    - name: Allow HTTP on port {{ http_port }}
+      ufw: rule=allow port={{ http_port }} proto=tcp
+    - name: Allow HTTPs on port {{ https_port }}
+      ufw: rule=allow port={{ https_port }} proto=tcp
+
+    - name: make shure /srv/docker exists
+      file:
+        path: /srv/docker
+        state: directory
+
+
       
 
   handlers:
