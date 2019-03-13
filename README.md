@@ -1,13 +1,28 @@
-# qgm-make-docker-host
+# create-docker-host
 
-You need a naked ubuntu 18.04 server host.
+## Man benötigt:
 
-* Install git & ansible: ``apt-get install git ansible``
-* Clone this repo
-* ``cd qgm-make-docker-host``
-* ``ansible-playbook  dockerhost.yml`` takes care of the rest.
+* Ubuntu 18.04 Server als Basis
+* git und ansible installiert: ``apt install git ansible``
+* Passwortlosen SSH-Zugang auf Port 22, wenn man nicht direkt an der Konsole sitzt.
 
-Attention: 
+## Inbetriebnahme:
 
-* This is work in progress, use with care
-* The playbook **disables ssh password authentication** to you host, so be shure that you have direct console access or acces with a public key auth to the server 
+* git clone lmn-create-simple-dockerhost...
+* cd lmn-create-simple-dockerhost
+* ansible-playbook docketrhost.yml
+
+Jetzt hat man einen einfachen Dockerfähigen Server mit Grundabsicherung:
+
+## Wesentliche installierte Pakete
+
+* docker-ce aus dem Docker-Repos
+* docker-compose direkt von Github
+* ufw
+* nginx
+* dehydrated
+
+## Anmerkungen: 
+
+* ufw hat als default policy deny, erlaubt sind per default nur die Ports 80, 443 und 22. Man muss davon abweichende Ports von Containern also später explizit freigeben, damit nicht versehentlich beim Starten von Containern Dienste unbeabsichtigt exposed werden.
+* SSH Anmeldung per Passwort wird deaktviert, man muss also vorher sicherstellen, dass man mit einem SSH Key auf den Server kommt.
